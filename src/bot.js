@@ -769,7 +769,17 @@ client.on('qr', (qr) => {
     console.log('\n========================================');
     console.log('   📱 ESCANEIE O QR CODE COM SEU WHATSAPP');
     console.log('========================================\n');
+    
+    // Mostrar QR Code normal
     qrcode.generate(qr, { small: true });
+    
+    // Mostrar link alternativo para gerar QR Code online
+    console.log('\n🔗 ALTERNATIVA: Copie o link abaixo e cole no navegador:');
+    console.log(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qr)}`);
+    
+    // Mostrar também o texto puro do QR Code (últimos 100 caracteres)
+    console.log('\n📝 TEXTO DO QR CODE (copie e cole no gerador de QR Code):');
+    console.log(qr.substring(0, 200) + '...');
     console.log('\n⏳ Aguardando escaneamento...\n');
     enviarLog('info', 'QR Code gerado, aguardando escaneamento');
 });
