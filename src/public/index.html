@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7CODE - Terminal do Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .terminal-container {
+            width: 1024px;
+            max-width: 90vw;
+            height: 1030px;
+            max-height: 90vh;
+            margin: 0 auto;
+            background: rgba(10, 14, 39, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .terminal-container:hover {
+            border-color: rgba(0, 255, 136, 0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Header do terminal */
+        .terminal-bar {
+            background: rgba(26, 31, 58, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+            flex-shrink: 0;
+        }
+
+        .terminal-title {
+            color: #00ff88;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+
+        .terminal-title::before {
+            content: "➜ ";
+            color: #00ff88;
+            text-shadow: 0 0 5px #00ff88;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 12px;
+        }
+
+        .terminal-btn {
+            background: rgba(42, 47, 74, 0.8);
+            color: #aaa;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: monospace;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .terminal-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            transform: translateY(-1px);
+        }
+
+        /* Área de logs - com logo fixa que NÃO ROLA */
+        .terminal-logs {
+            position: relative;
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            background: rgba(10, 14, 39, 0.5);
+        }
+
+        /* Logo como background FIXO - preenche todo container, NÃO ROLA */
+        .terminal-logs::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('/logo.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: local;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Conteúdo dos logs fica por cima da logo */
+        .logs-content {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            min-width: 600px;
+        }
+
+        /* Cores vibrantes estilo Bearded Theme */
+        .log-line {
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-bottom: 6px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            transition: all 0.1s ease;
+            padding: 3px 0;
+            border-left: 2px solid transparent;
+            padding-left: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .log-line:hover {
+            background: rgba(0, 255, 136, 0.08);
+            border-left-color: #00ff88;
+        }
+
+        /* Cores vibrantes para cada tipo - MAIS FORTES */
+        .text-info { color: #4ecdc4; text-shadow: 0 0 3px rgba(78, 205, 196, 0.5); }
+        .text-success { color: #00ff88; text-shadow: 0 0 5px rgba(0, 255, 136, 0.5); font-weight: 500; }
+        .text-error { color: #ff6b6b; text-shadow: 0 0 3px rgba(255, 107, 107, 0.5); }
+        .text-warning { color: #ffd93d; text-shadow: 0 0 3px rgba(255, 217, 61, 0.5); }
+        .text-payment { color: #ff9f43; text-shadow: 0 0 3px rgba(255, 159, 67, 0.5); }
+        .text-confirm { color: #00ff88; text-shadow: 0 0 8px rgba(0, 255, 136, 0.8); font-weight: bold; font-size: 13px; }
+        .text-cyan { color: #00d9ff; text-shadow: 0 0 3px rgba(0, 217, 255, 0.5); }
+        .text-yellow { color: #ffe066; text-shadow: 0 0 3px rgba(255, 224, 102, 0.5); }
+        .text-white { color: #e0e0e0; }
+        .text-purple { color: #c084fc; text-shadow: 0 0 3px rgba(192, 132, 252, 0.5); }
+
+        /* Destaque para números e valores */
+        .highlight {
+            color: #00ff88;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 255, 136, 0.5);
+        }
+
+        /* Scrollbar estilizada */
+        .terminal-logs::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .terminal-logs::-webkit-scrollbar-track {
+            background: rgba(26, 31, 58, 0.5);
+            border-radius: 4px;
+        }
+
+        .terminal-logs::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 4px;
+        }
+
+        .terminal-logs::-webkit-scrollbar-thumb:hover {
+            background: #00cc66;
+        }
+
+        /* Status bar */
+        .terminal-status {
+            background: rgba(26, 31, 58, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 10px 24px;
+            border-top: 1px solid rgba(0, 255, 136, 0.2);
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-family: monospace;
+            color: #888;
+            flex-shrink: 0;
+        }
+
+        .status-online {
+            color: #00ff88;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-online::before {
+            content: "";
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #00ff88;
+            border-radius: 50%;
+            box-shadow: 0 0 8px #00ff88;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        /* Animações */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .log-line.new {
+            animation: slideIn 0.2s ease;
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.1) 0%, transparent 100%);
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .logs-content {
+                padding: 12px;
+                min-width: 500px;
+            }
+            .log-line {
+                font-size: 10px;
+            }
+            .terminal-bar {
+                padding: 10px 16px;
+            }
+            .terminal-status {
+                padding: 8px 16px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-container">
+        <div class="terminal-bar">
+            <div class="terminal-title">7CODE@BOT:~$ TERMINAL EM TEMPO REAL</div>
+            <div class="terminal-controls">
+                <button class="terminal-btn" onclick="clearLogs()">⌨ clear</button>
+                <button class="terminal-btn" onclick="fetchLogs()">🔄 reload</button>
+            </div>
+        </div>
+        
+        <div class="terminal-logs" id="logs">
+            <div class="logs-content" id="logsContent">
+                <div class="log-line text-info">⏳ Carregando logs do bot...</div>
+            </div>
+        </div>
+        
+        <div class="terminal-status">
+            <span class="status-online" id="statusText">ONLINE</span>
+            <span id="logCount">0 logs</span>
+            <span>⚡ 7CODE v2.0 | PIX AUTOMÁTICO</span>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const logsContent = document.getElementById('logsContent');
+        let logCount = 0;
+        let allLogs = [];
+
+        // Receber novos logs em tempo real
+        socket.on('newLog', (log) => {
+            addLogToScreen(log);
+        });
+
+        // Carregar logs existentes
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+                logsContent.innerHTML = '';
+                allLogs = [];
+                logCount = 0;
+                data.logs.reverse().forEach(log => {
+                    addLogToScreen(log, false);
+                });
+                updateLogCount();
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+
+        function addLogToScreen(log, animate = true) {
+            const logLine = document.createElement('div');
+            logLine.className = 'log-line';
+            
+            if (animate) {
+                logLine.classList.add('new');
+                setTimeout(() => logLine.classList.remove('new'), 300);
+            }
+            
+            let formattedMessage = log.mensagem;
+            
+            // Destacar números e valores
+            formattedMessage = formattedMessage.replace(/R\$ [\d.,]+/g, match => `<span class="highlight">${match}</span>`);
+            formattedMessage = formattedMessage.replace(/\d{1,3}(?:\.\d{3})*,\d{2}/g, match => `<span class="highlight">R$ ${match}</span>`);
+            
+            // Aplicar cores
+            let colorClass = 'text-white';
+            if (formattedMessage.includes('[INFO]')) colorClass = 'text-info';
+            else if (formattedMessage.includes('[SUCCESS]')) colorClass = 'text-success';
+            else if (formattedMessage.includes('[ERROR]') || formattedMessage.includes('❌')) colorClass = 'text-error';
+            else if (formattedMessage.includes('[WARNING]')) colorClass = 'text-warning';
+            else if (formattedMessage.includes('[PAYMENT]') || formattedMessage.includes('💰')) colorClass = 'text-payment';
+            else if (formattedMessage.includes('[CONFIRM]')) colorClass = 'text-confirm';
+            else if (formattedMessage.includes('═') || formattedMessage.includes('╔') || formattedMessage.includes('╗') || 
+                     formattedMessage.includes('╚') || formattedMessage.includes('╝') || formattedMessage.includes('║')) colorClass = 'text-cyan';
+            else if (formattedMessage.includes('💳') || formattedMessage.includes('✅')) colorClass = 'text-purple';
+            
+            const timestamp = new Date(log.timestamp).toLocaleTimeString('pt-BR');
+            
+            logLine.innerHTML = `<span style="color:#555;">[${timestamp}]</span> <span class="${colorClass}">${escapeHtml(formattedMessage)}</span>`;
+            
+            if (log.dados) {
+                const dadosStr = JSON.stringify(log.dados, null, 2);
+                const dadosDiv = document.createElement('div');
+                dadosDiv.style.marginLeft = '75px';
+                dadosDiv.style.color = '#777';
+                dadosDiv.style.fontSize = '11px';
+                dadosDiv.style.whiteSpace = 'pre-wrap';
+                dadosDiv.style.fontFamily = 'monospace';
+                dadosDiv.innerHTML = `└─ ${escapeHtml(dadosStr)}`;
+                logLine.appendChild(dadosDiv);
+            }
+            
+            logsContent.insertBefore(logLine, logsContent.firstChild);
+            allLogs.unshift(log);
+            logCount++;
+            updateLogCount();
+            
+            while (logsContent.children.length > 500) {
+                logsContent.removeChild(logsContent.lastChild);
+                logCount--;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function clearLogs() {
+            logsContent.innerHTML = '';
+            allLogs = [];
+            logCount = 0;
+            updateLogCount();
+            fetch('/api/logs', { method: 'DELETE' }).catch(() => {});
+            const emptyLine = document.createElement('div');
+            emptyLine.className = 'log-line text-info';
+            emptyLine.innerHTML = `<span style="color:#555;">[${new Date().toLocaleTimeString('pt-BR')}]</span> <span class="text-info">[INFO] Logs limpos</span>`;
+            logsContent.appendChild(emptyLine);
+        }
+
+        function updateLogCount() {
+            document.getElementById('logCount').innerText = `${logCount} logs`;
+        }
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                const statusElement = document.getElementById('statusText');
+                if (data.status === 'online') {
+                    statusElement.className = 'status-online';
+                    statusElement.innerHTML = 'ONLINE';
+                } else {
+                    statusElement.className = 'status-offline';
+                    statusElement.innerHTML = 'OFFLINE';
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+            }
+        }
+
+        fetchLogs();
+        setInterval(checkStatus, 30000);
+    </script>
+</body>
+</html>
